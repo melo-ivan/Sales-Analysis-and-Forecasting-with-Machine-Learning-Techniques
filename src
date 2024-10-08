@@ -1,0 +1,98 @@
+# Importação de bibliotecas
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error, r2_score
+import requests
+
+# Carregar o dataset diretamente da URL
+url = "https://drive.google.com/uc?id=1-DsOs_upfPLU2MIfI1JY5iXopGFJXANF"  # Link ajustado
+data = pd.read_csv(url)
+
+# Verificar nomes das colunas
+print("Colunas do DataFrame:")
+print(data.columns.tolist())
+
+# Limpar nomes das colunas
+data.columns = data.columns.str.strip()
+data.columns = data.columns.str.replace(' ', '_')
+
+# Introdução
+print("Primeiras linhas do dataset:")
+print(data.head())
+print("\nDescrição do dataset:")
+print(data.describe())
+print("\nInformações sobre o dataset:")
+print(data.info())
+
+# Análise de valores ausentes
+print("\nValores ausentes em cada coluna:")
+print(data.isnull().sum())
+
+# Tratamento de valores ausentes (se necessário)
+data.fillna(method='ffill', inplace=True)
+
+# Análise Estatística Descritiva
+print("\nAnálise Estatística Descritiva:")
+print(data.describe())
+
+# Verificar se 'Sales' está disponível
+if 'Sales' in data.columns:
+    # Visualização da Distribuição das Vendas
+    plt.figure(figsize=(12, 6))
+    sns.histplot(data['Sales'], bins=30, kde=True)
+    plt.title('Distribuição das Vendas')
+    plt.xlabel('Vendas')
+    plt.ylabel('Frequência')
+    plt.show()
+else:
+    print("A coluna 'Sales' não existe.")
+
+# Calcular as vendas
+data['Sales'] = data['Order_Quantity'] * data['Unit_Price'].replace(',', '', regex=True).astype(float)
+
+# Exibir as primeiras linhas para verificar as vendas
+print(data[['OrderNumber', 'Sales_Channel', 'OrderDate', 'Order_Quantity', 'Unit_Price', 'Sales']].head())
+
+# Especificar o formato correto da data e usar dayfirst=True para datas no formato DD/MM/YY
+data['OrderDate'] = pd.to_datetime(data['OrderDate'], format='%d/%m/%y', dayfirst=True)
+
+# Análise das vendas totais por canal
+sales_by_channel = data.groupby('Sales_Channel')['Sales'].sum().reset_index()
+print("Vendas totais por canal:\n", sales_by_channel)
+
+# Gráfico de Vendas Totais por Canal
+plt.figure(figsize=(12, 6))
+sns.barplot(x='Sales', y='Sales_Channel', data=sales_by_channel, palette='viridis')
+plt.title('Vendas Totais por Canal')
+plt.xlabel('Total de Vendas')
+plt.ylabel('Canal de Vendas')
+plt.show()
+
+# Resampling para obter vendas mensais
+monthly_sales = data.resample('M', on='OrderDate').sum()
+
+# Tendência de Vendas ao Longo do Tempo
+plt.figure(figsize=(12, 6))
+plt.plot(monthly_sales.index, monthly_sales['Sales'], marker='o')
+plt.title('Tendência de Vendas ao Longo do Tempo')
+plt.xlabel('Data')
+plt.ylabel('Total de Vendas')
+plt.xticks(rotation=45)
+plt.grid()
+plt.show()
+
+# Análise de Descontos
+discount_analysis = data.groupby('Discount_Applied')['Sales'].sum().reset_index()
+print("Vendas Totais por Desconto Aplicado:\n", discount_analysis)
+
+# Gráfico de Vendas por Desconto Aplicado
+plt.figure(figsize=(12, 6))
+sns.barplot(x='Sales', y='Discount_Applied', data=discount_analysis, palette='mako')
+plt.title('Vendas Totais por Desconto Aplicado')
+plt.xlabel('Total de Vendas')
+plt.ylabel('Desconto Aplicado')
+plt.show()
